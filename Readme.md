@@ -34,6 +34,7 @@ Send over LoRa                       Calculate SSIM
 - 2x Raspberry Pi 4 Model B
 - 2x RFM9x LoRa Module (433MHz)
 - 2x INA219 Power Sensor
+- 2x Breadboard
 - Jumper wires
  
 ---

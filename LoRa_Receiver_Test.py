@@ -47,7 +47,7 @@ class SimpleVAE(nn.Module):
 print("Loading VAE model...")
 model = SimpleVAE()
 model.load_state_dict(torch.load(
-    '/home/ysj/Desktop/AutoEncoders/MNIST/vae_model (3).pth', // Autoencoder Model Path
+    '/home/ysj/Desktop/AutoEncoders/MNIST/vae_model (3).pth',
     map_location='cpu'
 ))
 model.eval()
@@ -151,7 +151,7 @@ def save_and_score(img_array, run_folder):
     
     try:
         original = np.array(
-            Image.open('/home/ysj/test_image.png').convert('L').resize((28, 28))
+            Image.open('/home/ysj/Image_dissertation/test_image.png').convert('L').resize((28, 28))
         ) / 255.0
         score = ssim(original, img_array, data_range=1.0)
         print("SSIM Score: " + str(round(score, 4)))

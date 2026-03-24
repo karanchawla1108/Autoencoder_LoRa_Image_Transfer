@@ -9,7 +9,7 @@ import adafruit_ina219
 import adafruit_rfm9x
 import digitalio
 from PIL import Image
-
+ 
 class SimpleVAE(nn.Module):
     def __init__(self):
         super(SimpleVAE, self).__init__()
@@ -41,19 +41,26 @@ class SimpleVAE(nn.Module):
         mean, var = self.encode(x)
         z = self.reparameterise(mean, var)
         return self.decode(z), mean, var
-
+ 
+ 
 print("Loading VAE model...")
 model = SimpleVAE()
 model.load_state_dict(torch.load(
-    '/home/karan/Desktop/AutoEncoders/MNIST/vae_model (3).pth', // Model Path
+    '/home/karan/Desktop/AutoEncoders/MNIST/vae_model (3).pth',
     map_location='cpu'
 ))
 model.eval()
 print("Model loaded OK")
-
+ 
 i2c = busio.I2C(board.SCL, board.SDA)
 ina = adafruit_ina219.INA219(i2c)
-
+ 
+print("INA219 power sensor ready")
+print("--- IDLE READINGS ---")
+print("Voltage: " + str(round(ina.bus_voltage, 2)) + "V")
+print("Current: " + str(round(ina.current, 2)) + "mA")
+print("Power:   " + str(round(ina.power, 2)) + "mW")
+ 
 spi = busio.SPI(board.SCK, MOSI=board.MOSI, MISO=board.MISO)
 cs  = digitalio.DigitalInOut(board.CE1)
 rst = digitalio.DigitalInOut(board.D25)
@@ -65,27 +72,35 @@ rfm.spreading_factor = 7
 rfm.enable_crc = True
 print("LoRa ready")
 
+
+
+
 def prepare_image(path):
     img = Image.open(path).convert('L')
     img = img.resize((28, 28))
     img_array = np.array(img) / 255.0
     tensor = torch.FloatTensor(img_array).unsqueeze(0).unsqueeze(0)
     return tensor
-
+ 
 def encode_image(tensor):
     with torch.no_grad():
         t_start = time.time()
         p_before = ina.power
+        v_before = ina.bus_voltage
+        i_before = ina.current
         mean, var = model.encode(tensor)
         z = model.reparameterise(mean, var)
         p_after = ina.power
         t_end = time.time()
     encode_time = (t_end - t_start) * 1000
     encode_power = (p_before + p_after) / 2
-    print("Encoded in " + str(round(encode_time, 1)) + "ms")
-    print("Encode power: " + str(round(encode_power, 2)) + "mW")
+    print("--- ENCODING ---")
+    print("Voltage: " + str(round(v_before, 2)) + "V")
+    print("Current: " + str(round(i_before, 2)) + "mA")
+    print("Power:   " + str(round(encode_power, 2)) + "mW")
+    print("Time:    " + str(round(encode_time, 1)) + "ms")
     return z.numpy().flatten(), encode_time, encode_power
-
+ 
 def split_packets(latent_vector):
     payload = latent_vector.astype(np.float32).tobytes()
     packets = []
@@ -93,11 +108,13 @@ def split_packets(latent_vector):
         packets.append(payload[i:i+48])
     print("Split into " + str(len(packets)) + " packets")
     return packets
-
+ 
 def send_packets(packets):
-    print("Sending " + str(len(packets)) + " packets...")
+    print("--- TRANSMISSION ---")
     t_start = time.time()
     p_before = ina.power
+    v_before = ina.bus_voltage
+    i_before = ina.current
     for i, packet in enumerate(packets):
         header = bytes([i, len(packets)])
         rfm.send(header + packet)
@@ -107,26 +124,24 @@ def send_packets(packets):
     t_end = time.time()
     tx_time = (t_end - t_start) * 1000
     tx_power = (p_before + p_after) / 2
-    print("Sent in " + str(round(tx_time, 1)) + "ms")
-    print("TX power: " + str(round(tx_power, 2)) + "mW")
+    print("Voltage: " + str(round(v_before, 2)) + "V")
+    print("Current: " + str(round(i_before, 2)) + "mA")
+    print("Power:   " + str(round(tx_power, 2)) + "mW")
+    print("Time:    " + str(round(tx_time, 1)) + "ms")
     return tx_time, tx_power
-
+ 
 print("Starting VAE transmission...")
-image_path = '/home/karan/Desktop/Image_Disseratation/test_image.png' / Image path
+image_path = '/home/karan/Desktop/Image_Disseratation/test_image.png'
 tensor = prepare_image(image_path)
 latent, enc_time, enc_power = encode_image(tensor)
 packets = split_packets(latent)
 tx_time, tx_power = send_packets(packets)
-
-# Show what digit we are sending
-from PIL import Image as PILImage
-img_check = PILImage.open(image_path)
+ 
+img_check = Image.open(image_path)
 print("Image size: " + str(img_check.size))
 print("Sending MNIST digit image...")
-
-
-
-print("--- RESULTS ---")
+ 
+print("--- RESULTS SUMMARY ---")
 print("Packets sent:  " + str(len(packets)))
 print("Payload size:  128 bytes")
 print("Encode time:   " + str(round(enc_time, 1)) + "ms")

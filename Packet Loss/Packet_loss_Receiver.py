@@ -46,7 +46,7 @@ class SimpleVAE(nn.Module):
 print("Loading VAE model...")
 model = SimpleVAE()
 model.load_state_dict(torch.load(
-    '/home/ysj/Desktop/AutoEncoders/MNIST/vae_model (3).pth', // Trained Model path
+    '/home/ysj/Desktop/AutoEncoders/MNIST/vae_model (3).pth',
     map_location='cpu'
 ))
 model.eval()
@@ -68,7 +68,7 @@ rfm.enable_crc = True
 print("LoRa ready - waiting for packets...")
  
 # Create run folder automatically
-base_folder = '/home/ysj/Packet loss Image' // Image save folder path
+base_folder = '/home/ysj/Packet loss Image'
 os.makedirs(base_folder, exist_ok=True)
  
 run_num = 1
@@ -78,7 +78,7 @@ run_folder = base_folder + '/run' + str(run_num)
 os.makedirs(run_folder)
 print("Saving images to: " + run_folder)
  
-def receive_packets(num_packets=3, timeout=30):
+def receive_packets(num_packets=3, timeout=45):
     received = {}
     t_start = time.time()
     while len(received) < num_packets:
@@ -136,7 +136,7 @@ def save_and_score(img_array, test_num, loss_label, packets_received, lost, ssim
 
     # Load original
     try:
-        original_pil = Image.open('/home/ysj/test_image.png').convert('L').resize((28, 28))
+        original_pil = Image.open('/home/ysj/Image_dissertation/test_image.png').convert('L').resize((28, 28))
         original_arr = np.array(original_pil) / 255.0
         score = ssim(original_arr, img_array, data_range=1.0)
         print("SSIM Score: " + str(round(score, 4)))

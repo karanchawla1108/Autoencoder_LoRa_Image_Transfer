@@ -1,6 +1,6 @@
 
 ## Overview
-```
+
 
  
 This project implements an improved VAE-based image compression and transmission system over LoRa networks using two Raspberry Pi 4 nodes. The system also includes packet loss testing and power measurement using INA219.
@@ -8,7 +8,7 @@ This project implements an improved VAE-based image compression and transmission
 - Pi A (Sender) — encodes image using Improved VAE, splits into 6 packets, transmits over LoRa with optional packet loss
 - Pi B (Receiver) — receives packets, reconstructs missing data, decodes image, calculates SSIM and saves results
  
----
+
  
 ## PATHS YOU MUST CHANGE
  

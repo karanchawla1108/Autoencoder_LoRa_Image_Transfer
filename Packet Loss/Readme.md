@@ -1,9 +1,12 @@
+
 ## Overview
+```
+
  
-This project implements a VAE-based image compression and transmission system over LoRa networks using two Raspberry Pi 4 nodes.
+This project implements an improved VAE-based image compression and transmission system over LoRa networks using two Raspberry Pi 4 nodes. The system also includes packet loss testing and power measurement using INA219.
  
-- **Pi A (Sender)** — encodes image using VAE, transmits over LoRa
-- **Pi B (Receiver)** — receives packets, decodes image, calculates SSIM
+- Pi A (Sender) — encodes image using Improved VAE, splits into 6 packets, transmits over LoRa with optional packet loss
+- Pi B (Receiver) — receives packets, reconstructs missing data, decodes image, calculates SSIM and saves results
  
 ---
  
@@ -11,19 +14,22 @@ This project implements a VAE-based image compression and transmission system ov
  
 These paths are different on every setup. Change them before running any script.
  
-### Pi A (Sender) — sender.py and sender_loss_test.py
+### Pi A (Sender) — New_LoRa_Sender_Loss.py
  
 ```python
-# LINE 1 — Model path (change to where your .pth file is)
+# LINE 1 — Model path (Improved VAE model)
 model.load_state_dict(torch.load(
-    '/home/karan/Desktop/AutoEncoders/MNIST/vae_model (3).pth',
-    #  CHANGE THIS to your actual model path on Pi A
+    '/home/karan/Desktop/New Improved MNIST VAE model/vae_model_improved.pth',
+    # CHANGE THIS to your actual model path on Pi A
     map_location='cpu'
 ))
  
 # LINE 2 — Test image path
-image_path = '/home/karan/test_image.png'
-#             CHANGE THIS to your actual image path on Pi A
+IMAGE_PATH = '/home/karan/Desktop/Image_dissertation/test_image.png'
+# CHANGE THIS to your actual image path on Pi A
+
+
+
 ```
  
 ### Pi B (Receiver) — receiver.py and receiver_loss_test.py
@@ -31,19 +37,18 @@ image_path = '/home/karan/test_image.png'
 ```python
 # LINE 1 — Model path on Pi B
 model.load_state_dict(torch.load(
-    '/home/ysj/Desktop/AutoEncoders/MNIST/vae_model (3).pth',
-    #  CHANGE THIS to your actual model path on Pi B
+    '/home/ysj/Desktop/New Improved MNIST VAE model/vae_model_improved.pth',
+    # CHANGE THIS to your actual model path on Pi B
     map_location='cpu'
 ))
  
 # LINE 2 — Original image path for SSIM comparison
-Image.open('/home/ysj/test_image.png')
-#          CHANGE THIS to where you copied the test image on Pi B
-#          Note: may be .jpg or .png depending on how you copied it
+ORIGINAL_IMAGE_PATH = '/home/ysj/Image_dissertation/test_image.png'
+# CHANGE THIS to where your image is stored on Pi B
  
-# LINE 3 — Output folder for saved images
-base_folder = '/home/ysj/Packet loss Image'
-#              CHANGE THIS if you want images saved somewhere else
+# LINE 3 — Output folder
+BASE_FOLDER = '/home/ysj/Packet loss Image Improved'
+# CHANGE THIS if you want images saved somewhere else
 ```
  
 ---
@@ -51,16 +56,20 @@ base_folder = '/home/ysj/Packet loss Image'
 ## File Structure
  
 ```
-dissertation-vae/
-    sender.py                    <- Basic sender (single transmission)
-    sender_loss_test.py          <- Sender with 3 packet loss tests
-    receiver.py                  <- Basic receiver (single transmission)
-    receiver_loss_test.py        <- Receiver with 3 tests + comparison images
-    vae_model (3).pth            <- Trained VAE model weights
-    Training_model.ipynb         <- VAE training code (Google Colab)
-    Training_model_extend.ipynb  <- Full experiment pipeline
-    kaggle_Auto_encoder.ipynb    <- Kaggle baseline model code
-    README.md                    <- This file
+Dissertation_LoRa_Image_Transfer/
+    Packet Loss/
+        New_LoRa_Sender_Loss.py      <- Updated sender (6 packets + test ID)
+        New_LoRa_Receiver_Loss.py    <- Updated receiver (smart waiting + SSIM)
+        Packet_loss_Sender.py        <- Old sender (3 packets)
+        Packet_loss_Receiver.py      <- Old receiver
+        Readme.md                    <- This file
+ 
+    New Improved MNIST VAE model/
+        improved_vae_model.ipynb
+        vae_model_improved.pth
+ 
+    MNIST Autoencoder/
+    Kaggle Autoencoder/
 ```
  
 
@@ -90,18 +99,18 @@ sudo raspi-config
 ## Copy Files to Both Pis
  
 ```bash
-# Copy model to Pi A
-scp 'vae_model (3).pth' karan@[PI-A-IP]:/home/karan/Desktop/AutoEncoders/MNIST/
- 
-# Copy model to Pi B
-scp 'vae_model (3).pth' ysj@[PI-B-IP]:/home/ysj/Desktop/AutoEncoders/MNIST/
- 
-# Copy test image to Pi B
-scp /home/karan/test_image.png ysj@[PI-B-IP]:/home/ysj/test_image.png
- 
+# Copy model to both Pis
+scp vae_model_improved.pth karan@$PI_A:/home/karan/
+scp vae_model_improved.pth ysj@$PI_B:/home/ysj/
+
+# Copy test image to receiver (Pi B)
+scp test_image.png ysj@$PI_B:/home/ysj/
+
 # Copy receiver scripts to Pi B
-scp receiver.py ysj@[PI-B-IP]:/home/ysj/
-scp receiver_loss_test.py ysj@[PI-B-IP]:/home/ysj/
+scp New_LoRa_Receiver_Loss.py ysj@$PI_B:/home/ysj/
+
+# Copy sender script to Pi A
+scp New_LoRa_Sender_Loss.py karan@$PI_A:/home/karan/
 ```
  
 ---
@@ -144,17 +153,19 @@ python3 /home/karan/sender.py
  
 ```bash
 # STEP 1 — Start receiver on Pi B FIRST
-python3 /home/ysj/receiver_loss_test.py
+python3 /home/ysj/New_LoRa_Receiver_Loss.py
  
 # STEP 2 — Run sender on Pi A
-python3 /home/karan/sender_loss_test.py
+python3 /home/karan/New_LoRa_Sender_Loss.py
 ```
  
-Three automatic tests run:
-- Test 1 — 0% packet loss (all 3 packets sent)
-- Test 2 — 33% packet loss (~1 packet dropped)
-- Test 3 — 66% packet loss (~2 packets dropped)
- 
+Four automatic tests:
+
+Test 1 — 0% packet loss (all 6 packets sent)
+Test 2 — 1 packet loss
+Test 3 — 2 packet loss
+Test 4 — 3 packet loss
+
 ---
  
 ## Output Images
@@ -162,15 +173,13 @@ Three automatic tests run:
 Images are saved automatically in:
  
 ```
-/home/ysj/Packet loss Image/
+/home/ysj/Packet loss Image Improved/
     run1/
         test1_0pct_loss_reconstructed.png
         test1_0pct_loss_comparison.png
-        test2_33pct_loss_reconstructed.png
-        test2_33pct_loss_comparison.png
-        test3_66pct_loss_reconstructed.png
-        test3_66pct_loss_comparison.png
-    run2/
+        test2_1packet_loss_reconstructed.png
+        test2_1packet_loss_comparison.png
+        ...
         ...
 ```
  
@@ -193,6 +202,9 @@ rfm.spreading_factor = 7
 rfm.enable_crc = True
 frequency = 433.0
 ```
+
+
+
  
 ---
  

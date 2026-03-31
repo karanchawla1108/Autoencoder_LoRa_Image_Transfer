@@ -77,6 +77,27 @@ pip3 install scikit-image pillow numpy --break-system-packages
 Enable SPI on both Pis via `raspi-config` ? Interface Options ? SPI.
 
 ---
+## Generating the Test Image
+
+The MNIST digit 7 test image can be generated using the following command on Pi A:
+```python
+python3 -c "
+import torchvision
+import torchvision.transforms as transforms
+from PIL import Image
+dataset = torchvision.datasets.MNIST(
+    root='./data', train=False, download=True,
+    transform=transforms.ToTensor()
+)
+img, label = dataset[0]
+img_pil = Image.fromarray(
+    (img.squeeze().numpy() * 255).astype('uint8')
+)
+img_pil.save('/home/karan/Desktop/Image_Disseratation/test_image.png')
+print('Saved MNIST test image - digit: ' + str(label))
+"
+```
+
 
 ## Running
 

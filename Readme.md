@@ -126,7 +126,6 @@ python3 New_LoRa_Receiver.py
 
 Start the receiver before the sender. Results are printed to the console and optionally saved to a log file.
 
----
 
 
 

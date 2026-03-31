@@ -132,6 +132,3 @@ Start the receiver before the sender. Results are printed to the console and opt
 
 
 
----
-
-*Dissertation submitted in partial fulfilment of the requirements for BSc Computer Science, York St John University, 2026.*
